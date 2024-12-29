@@ -50,6 +50,15 @@ def get_user_teams_by_user_id(user_id):
         cursor.close()
         connection.close()
 
+def update_teams_list(teams_listbox, user_id):
+    teams = get_user_teams_by_user_id(user_id=user_id)
+
+    teams_listbox.delete(0, tk.END)
+
+    for team in teams:
+        teams_listbox.insert(tk.END, team)
+
+
 # UPDATE: Takım üyesi bilgisini güncelleme
 def update_team_member(user_id, team_id, new_role=None):
     connection = connect_db()

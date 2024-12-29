@@ -1,4 +1,8 @@
+import tkinter as tk
+from tkinter import messagebox
+
 import mysql.connector
+import bcrypt
 
 # Veritabanı bağlantısı
 def connect_db():
@@ -16,19 +20,59 @@ def login_user(user_name, user_password):
     cursor = connection.cursor()
     try:
         cursor.execute("""
-            SELECT user_id, role 
+            SELECT user_id, user_name, user_password ,role 
             FROM users 
             WHERE user_name = %s AND user_password = %s
         """, (user_name, user_password))
-        user = cursor.fetchone()
+        result = cursor.fetchone()
         
-        if user:
-            print(f"Giriş başarılı! Kullanıcı ID: {user[0]}, Rol: {user[1]}")
+        if result:
             # Burada ana sayfaya yönlendirme yapılabilir
-            return True  # Giriş başarılı
+            return result  # Giriş başarılı
         else:
             print("Hatalı kullanıcı adı veya şifre!")
             return False  # Giriş başarısız
+    except mysql.connector.Error as e:
+        print(f"Veritabanı hatası: {e}")
+        return False  # Giriş başarısız
+    finally:
+        cursor.close()
+        connection.close()
+
+def login_user_hash(user_name, user_password):
+    connection = connect_db()
+    cursor = connection.cursor()
+    try:
+        # Veritabanından kullanıcı bilgilerini al
+        cursor.execute("""
+            SELECT user_id, user_name, user_password, role 
+            FROM users 
+            WHERE user_name = %s
+        """, (user_name,))
+        result = cursor.fetchone()
+
+        if result:
+            user_id, db_user_name, hashed_password, role = result[0]
+
+             # Şifreyi doğrula: önce user_password'ı kontrol et
+            if isinstance(user_password, str):
+                user_password = user_password.encode('utf-8')  # Eğer str ise, bytes'a çevir
+
+            # Şifreyi doğrula
+            if bcrypt.checkpw(user_password, hashed_password.encode('utf-8')):
+                print(f"{user_password} , {hashed_password}")
+                # Giriş başarılı, bilgileri döndür
+                return {
+                    "user_id": user_id,
+                    "user_name": db_user_name,
+                    "role": role
+                }
+            else:
+                print("Hatalı şifre!")
+                return False  # Şifre hatalı
+        else:
+            print("Kullanıcı bulunamadı!")
+            return False  # Kullanıcı adı bulunamadı
     except mysql.connector.Error as e:
         print(f"Veritabanı hatası: {e}")
         return False  # Giriş başarısız
@@ -50,7 +94,7 @@ def get_user_id_by_name(user_name):
         if user:
             return user[0]  # user_id'yi döndür
         else:
-            print("Kullanıcı bulunamadı!")
+            print("Kullanici bulunamadı!")
             return None  # Kullanıcı yoksa None döndür
     except mysql.connector.Error as e:
         print(f"Veritabanı hatası: {e}")
@@ -66,22 +110,28 @@ def create_user(user_name, user_password, role):
     cursor = connection.cursor()
     try:
         # Kullanıcı adının daha önce kullanılıp kullanılmadığını kontrol et
-        cursor.execute("SELECT user_id FROM users WHERE user_name = %s", (user_name))
+        cursor.execute("SELECT user_id FROM users WHERE user_name = %s", (user_name,))
         existing_user = cursor.fetchone()
 
         if existing_user:
+            messagebox.showwarning("Hata","Bu isim kullanılıyor")
             print("Hata: Bu kullanıcı adı zaten kullanılıyor. Lütfen başka bir kullanıcı adı seçin.")
             return
+
+        # Şifreyi hashle
+        hashed_password = bcrypt.hashpw(user_password.encode('utf-8'), bcrypt.gensalt())
 
         # Kullanıcı adı mevcut değilse yeni kullanıcı ekle
         cursor.execute("""
             INSERT INTO users (user_name, user_password, role)
             VALUES (%s, %s, %s)
-        """, (user_name, user_password, role))
+        """, (user_name, hashed_password, role))
         connection.commit()
-        print("Kullanıcı başarıyla eklendi.")
+        messagebox.showinfo("Eklendi","Kullanici ekleme basarili")
+        print("Kullanici başariyla eklendi.")
     except mysql.connector.Error as e:
-        print(f"Veritabanı hatası: {e}")
+        messagebox.showwarning("Hata","Veritabaninda hata olustu !")
+        print(f"Veritabani hatasi: {e}")
     finally:
         cursor.close()
         connection.close()
@@ -153,7 +203,7 @@ def delete_user(user_id):
 # Örnek Kullanım
 if __name__ == "__main__":
     # Yeni kullanıcı ekleme
-    create_user("drogba", "password123", "admin")
+    create_user("drogba", "password123", "Admin")
     
     # Kullanıcıları listeleme
     print("Tüm kullanıcılar:")

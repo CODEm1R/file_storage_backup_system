@@ -81,7 +81,7 @@ def delete_file(files_listbox, owner_id):
 
     target_file_id = files_listbox.get(selected[0])[0]
 
-    query = 'SELECT file_path FROM files WHERE id = %s AND owner_id = %s;'
+    query = 'SELECT file_path FROM files WHERE file_id = %s AND owner_id = %s;'
     params = (target_file_id, owner_id)
 
     try:

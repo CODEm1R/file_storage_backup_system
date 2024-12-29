@@ -16,9 +16,10 @@ from repository.user_repo import *
 from repository.team_repo import *
 from repository.team_member_repo import *
 from repository.file_repo import *
+from repository.file_share_repo import *
 
 
-activeUser = NormalUser(user_id=1,nickname="default Name",password="default Password",role="Normal")
+activeUser = None
 activeTeam = Team(team_id=1,team_name="defaultName")
 
 # Ana uygulama sınıfı
@@ -51,27 +52,28 @@ class LoginPage(tk.Frame):
         self.password_entry = tk.Entry(self, show="*")
         self.password_entry.pack(pady=5)
 
-        tk.Button(self, text="Login", command=self.login).pack(pady=10)
+        tk.Button(self, text="Login", command=lambda: self.login(self.name_entry.get(), self.password_entry.get())).pack(pady=10)
         tk.Button(self, text="Sign Up", command=lambda: parent.show_page(SignUpPage)).pack(pady=5)
 
-    def login(self):
+    def login(self, nickname, password):
 
-        user = NormalUser(user_id=1, nickname=self.name_entry.get(), password=self.password_entry.get(), role="Normal")
+        if nickname and password:
+            print(password)
+            result = login_user_hash(nickname,password)
+            print(result)
 
-        if user.nickname and user.password:
-            if login_user(user.nickname,user.password):
-                global activeUser 
-                activeUser = user
-                activeUser.user_id = get_user_id_by_name(activeUser.nickname)
-                print(activeUser.user_id)
-                print(f"giris yapan {activeUser.nickname}")
+            global activeUser
+            if result[3] == "Admin":
+               activeUser  = AdminUser(result[0],result[1],result[2],result[3])
+               self.master.show_page(AdminHomePage)
+
+            elif result[3] == "Normal":
+                activeUser  = NormalUser(result[0],result[1],result[2],result[3])
                 self.master.show_page(HomePage)
-            else:
-                messagebox.showerror("Hata","Kulalnici Bulunamadi")
-                self.master.show_page(LoginPage)        
-            
+
         else:
             messagebox.showerror("Hata", "Kullanici adi ve şifre boş birakilamaz!")
+            self.master.show_page(LoginPage)
 
 
 # Kayıt sayfası sınıfı
@@ -112,6 +114,28 @@ class SignUpPage(tk.Frame):
         else:
             messagebox.showerror("Hata", "Şifreler uyuşmuyor!")
 
+class AdminHomePage(tk.Frame):
+    def __init__(self, master):
+        super().__init__(master)
+        self.master = master
+        self.master.title("Admin Home Page")
+        self.pack()
+
+        # Sayfa bileşenlerini buraya ekleyebilirsiniz
+        self.create_widgets()
+
+    def create_widgets(self):
+        # Burada admin home page için widget'lar ekleyebilirsiniz
+        welcome_label = tk.Label(self, text="Hoş geldiniz, Admin!")
+        welcome_label.pack(pady=20)
+
+        logout_button = tk.Button(self, text="Çıkış Yap", command=self.logout)
+        logout_button.pack(pady=10)
+
+    def logout(self):
+        print("Admin çıkış yaptı.")
+        # Burada çıkış yapmak için gerekli işlemleri gerçekleştirebilirsiniz
+        self.master.quit()
 
 class HomePage(tk.Frame):
     def __init__(self, parent):
@@ -119,20 +143,97 @@ class HomePage(tk.Frame):
         tk.Label(self, text="Ana Sayfa", font=("Arial", 20)).pack(pady=20)
         tk.Label(self, text="Hoş geldiniz!", font=("Arial", 14)).pack(pady=10)
 
-        # "Takımlar" butonu
-        tk.Button(self, text="Takimlarim", command=lambda: parent.show_page(TeamsPage)).pack(pady=10)
+        # Yatay Takım butonları
+        team_buttons_frame = tk.Frame(self)
+        team_buttons_frame.pack(pady=10)
 
-        # Takım Oluştur Butonu 
-        tk.Button(self, text="Takim yap", command=lambda: parent.show_page(CreateTeamPage)).pack(pady=10)
+        tk.Button(team_buttons_frame, text="Takimlarim", command=lambda: parent.show_page(TeamsPage)).pack(side=tk.LEFT, padx=10)
+
+        # "Dosya Sil" butonu
+        tk.Button(team_buttons_frame, text="Takim yap", command=lambda: parent.show_page(CreateTeamPage)).pack(side=tk.LEFT, padx=10)
 
         # "Profilim" butonu
         tk.Button(self, text="Profilim", command=lambda: parent.show_page(ProfilePage)).pack(pady=10)
 
         # "Dosya Yükle" butonu
-        files_listbox = tk.Listbox(parent, height=10, width=100)
+        files_listbox = tk.Listbox(parent, height=10, width=100, selectmode="single")
         files_listbox.pack(pady=10)
         update_files_list(files_listbox,activeUser.user_id) 
-        tk.Button(self, text="Dosya Yukle", command=lambda: upload_file(files_listbox , activeUser.user_id)).pack(pady=10)
+
+        teams_listbox = tk.Listbox(parent, height=10, width=100, selectmode="single")
+        teams_listbox.pack(pady=10)
+        update_teams_list(teams_listbox,activeUser.user_id)
+
+         # Yatay çerçeve oluştur
+        file_buttons_frame = tk.Frame(self)
+        file_buttons_frame.pack(pady=10)
+
+        # "Dosya Yükle" butonu
+        tk.Button(file_buttons_frame, text="Dosya Yukle", command=lambda: upload_file(files_listbox, activeUser.user_id)).pack(side=tk.LEFT, padx=10)
+
+        # "Dosya Sil" butonu
+        tk.Button(file_buttons_frame, text="Dosya Sil", command=lambda: delete_file(files_listbox, activeUser.user_id)).pack(side=tk.LEFT, padx=10)
+
+         # Dosya paylaşma girişleri
+        share_inputs_frame = tk.Frame(self)
+        share_inputs_frame.pack(pady=10)
+
+        # Dosya ID girişi
+        tk.Label(share_inputs_frame, text="Dosya ID:").pack(side=tk.LEFT, padx=5)
+        file_id_entry = tk.Entry(share_inputs_frame, width=15)
+        file_id_entry.pack(side=tk.LEFT, padx=5)
+
+        # Takım ID girişi
+        tk.Label(share_inputs_frame, text="Takim ID:").pack(side=tk.LEFT, padx=5)
+        team_id_entry = tk.Entry(share_inputs_frame, width=15)
+        team_id_entry.pack(side=tk.LEFT, padx=5)
+
+        # "Dosya Paylaş" butonu
+        tk.Button(
+            share_inputs_frame,
+            text="Dosya Paylaş",
+            command=lambda: share_file_with_team(
+                file_id=file_id_entry.get(),
+                team_id=team_id_entry.get()
+            )
+        ).pack(pady=10)
+
+
+    def share_file(self, files_listbox):
+        selected_file_item = files_listbox.curselection()
+        if not selected_file_item:
+            print("Lütfen bir dosya seçin!")
+            return None
+
+        index = selected_file_item[0]
+        file = files_listbox.get(index)
+        print(f"Listbox'tan alınan dosya: {file}")  # Değeri doğrulama
+
+        if isinstance(file, tuple) and len(file) > 0:
+            file_id = file[0]
+            print(f"Seçilen dosya ID: {file_id}")
+            return file_id
+        else:
+            print("Geçersiz dosya formati!")
+            return None
+
+    def share_team(self, teams_listbox):
+        selected_team_item = teams_listbox.curselection()
+        if not selected_team_item:
+            print("Lütfen bir takim seçin!")
+            return None
+
+        index = selected_team_item[0]
+        team = teams_listbox.get(index)
+        print(f"Listbox'tan alinan takim: {team}")  # Değeri doğrulama
+
+        if isinstance(team, tuple) and len(team) > 0:
+            team_id = team[0]
+            print(f"Seçilen takim ID: {team_id}")
+            return team_id
+        else:
+            print("Geçersiz takım formatı!")
+            return None    
 
 
 # Takımlar Sayfası
@@ -197,14 +298,7 @@ class MyTeamPage(tk.Frame):
         middle_frame = tk.Frame(self, width=300, height=300, bg="lightgray")
         middle_frame.pack(pady=20, fill="both", expand=True)
         middle_frame.pack_propagate(False)  # Alanın sabit boyutta kalmasını sağla
-        # "Dosya Yükle" butonu
-        files_listbox = tk.Listbox(self.parent, height=10, width=100)
-        files_listbox.pack(pady=10)
-        update_files_list(files_listbox,activeUser.user_id)
-
-        # Alt Kısım: Dosya Ekle Butonu
-        tk.Button(self, text="Dosya Ekle", command=lambda: upload_file(files_listbox , activeUser.user_id), font=("Arial", 12)).pack(pady=20)
-
+        
     def add_user(self):
         print(f"Kullanıcı ekleme işlemi başlatıldı. {activeTeam.team_id}")
         # Yeni bir pencere aç

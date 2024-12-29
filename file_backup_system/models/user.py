@@ -9,7 +9,7 @@ class User:
         self.role = role
 
 class AdminUser(User):
-    def __init__(self, user_id, nickname, password):
+    def __init__(self, user_id, nickname, password, role):
         super().__init__(user_id, nickname, password,role="Admin") 
 
 class NormalUser(User):
