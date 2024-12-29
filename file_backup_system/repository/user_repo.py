@@ -52,22 +52,15 @@ def login_user_hash(user_name, user_password):
         result = cursor.fetchone()
 
         if result:
-            user_id, db_user_name, hashed_password, role = result[0]
-
-             # Şifreyi doğrula: önce user_password'ı kontrol et
-            if isinstance(user_password, str):
-                user_password = user_password.encode('utf-8')  # Eğer str ise, bytes'a çevir
+            user_id, db_user_name, hashed_password, role = result
 
             # Şifreyi doğrula
-            if bcrypt.checkpw(user_password, hashed_password.encode('utf-8')):
-                print(f"{user_password} , {hashed_password}")
+            if bcrypt.checkpw(user_password.encode('utf-8'), hashed_password.encode('utf-8')):
+                print(f"{user_password.encode('utf-8')} , {hashed_password}")
                 # Giriş başarılı, bilgileri döndür
-                return {
-                    "user_id": user_id,
-                    "user_name": db_user_name,
-                    "role": role
-                }
+                return result
             else:
+                messagebox.showwarning("Hata","Şifre Hatalı")
                 print("Hatalı şifre!")
                 return False  # Şifre hatalı
         else:
@@ -150,6 +143,14 @@ def get_all_users():
     finally:
         cursor.close()
         connection.close()
+
+def update_users_list(users_listbox):
+    users = get_all_users()
+
+    users_listbox.delete(0, tk.END)
+
+    for user in users:
+        users_listbox.insert(tk.END, user)
 
 # READ: Tüm kullanıcıları listeleme
 def read_users():

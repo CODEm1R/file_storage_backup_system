@@ -106,3 +106,30 @@ def delete_file(files_listbox, owner_id):
         update_files_list(files_listbox, owner_id)
     except Exception as e:
         messagebox.showerror("Error", f"Error deleting file: {e}")
+
+
+# Girilen team_id'ye göre file_id'leri bulma
+def get_file_ids_for_team(team_id):
+    conn = create_database_connection()
+    if conn is None:
+        return []
+    
+    cursor = conn.cursor()
+    cursor.execute("SELECT file_id FROM file_sharing WHERE team_id = %s", (team_id,))
+    file_ids = cursor.fetchall()
+    conn.close()
+    return [file_id[0] for file_id in file_ids]
+
+
+# file_id'ye göre dosya bilgilerini alma
+def get_file_details(file_ids):
+    conn = create_database_connection()
+    if conn is None:
+        return []
+    
+    cursor = conn.cursor()
+    # file_id'leri veritabanına güvenli bir şekilde geçirmek için '%s' kullanıyoruz
+    cursor.execute(f"SELECT file_name, file_path, file_size, file_type, owner_id FROM files WHERE file_id IN ({','.join(['%s'] * len(file_ids))})", tuple(file_ids))
+    file_details = cursor.fetchall()
+    conn.close()
+    return file_details

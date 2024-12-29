@@ -129,8 +129,58 @@ class AdminHomePage(tk.Frame):
         welcome_label = tk.Label(self, text="Hoş geldiniz, Admin!")
         welcome_label.pack(pady=20)
 
+        # Kullanıcı listesini göstermek için Listbox
+        self.user_listbox = tk.Listbox(self, width=50, height=15)
+        self.user_listbox.pack(pady=10)
+        # Kullanıcı listesini yükle
+        update_users_list(users_listbox=self.user_listbox)
+
+        delete_user_button = tk.Button(self, text="Kullanici sil",command=lambda: self.remove_user(self.user_listbox))
+        delete_user_button.pack(pady=10)
+
+        # Kullanıcı boyutunu düzenleme alanı (Entry ve Buton yan yana)
+        size_frame = tk.Frame(self)
+        size_frame.pack(pady=10)
+
+        self.size_entry = tk.Entry(size_frame, width=20)
+        self.size_entry.pack(side=tk.LEFT, padx=5)
+
+        size_button = tk.Button(size_frame, text="Boyut Düzenle", state="disabled")
+        size_button.pack(side=tk.LEFT, padx=5)
+
+        # Kullanıcı dsoyalarını düzenleme alanı (Entry ve Buton yan yana)
+        usersfile_frame = tk.Frame(self)
+        usersfile_frame.pack(pady=10)
+
+        tk.Label(usersfile_frame, text="Dosyalari goruntulenecek user id:").pack(side=tk.LEFT, padx=5)
+        self.userID_entry = tk.Entry(usersfile_frame, width=20)
+        self.userID_entry.pack(side=tk.LEFT, padx=5)
+
+        file_button = tk.Button(usersfile_frame, text="Boyut Düzenle", command=lambda: update_files_list(self.files_listbox,self.userID_entry.get()))
+        file_button.pack(side=tk.LEFT, padx=5)
+
+        # Kullanıcı listesini göstermek için Listbox
+        self.files_listbox = tk.Listbox(self, width=50, height=15)
+        self.files_listbox.pack(pady=10)
+        # Kullanıcı listesini yükle
+        #update_files_list(files_listbox=self.files_listbox,owner_id=10)
+
         logout_button = tk.Button(self, text="Çıkış Yap", command=self.logout)
         logout_button.pack(pady=10)
+
+    def remove_user(self, user_listbox):
+        user_id = self.get_user_id(user_listbox)
+        delete_user(user_id)
+        update_users_list(user_listbox)
+
+    def get_user_id (self, user_listbox):
+        selected = user_listbox.curselection()
+        index = selected[0]
+        user = user_listbox.get(index)
+        user_id = user[0]
+        print(user_id)
+        #user_id = user_listbox.get(selected[0])
+        return user_id
 
     def logout(self):
         print("Admin çıkış yaptı.")
@@ -286,24 +336,26 @@ class MyTeamPage(tk.Frame):
         self.parent = parent
         self.create_widgets(self.parent)
 
-    def create_widgets(self,parent):
+    def create_widgets(self, parent):
         # Üst Kısım: Başlık
         header = tk.Frame(parent)
         header.pack(fill="x", pady=10)
         tk.Label(header, text=f"{activeTeam.team_name}", font=("Arial", 20)).pack(side="left", padx=20)
         # Sağ Üst: Kullanıcı Ekle Butonu
-        tk.Button(header, text="Kullanici Ekle", command=self.add_user).pack(side="right", padx=20)
+        tk.Button(header, text="Kullanıcı Ekle", command=self.add_user).pack(side="right", padx=20)
 
-        # Orta Kısım: Yüklenecek Dosyaların Gösterileceği Alan
-        middle_frame = tk.Frame(self, width=300, height=300, bg="lightgray")
-        middle_frame.pack(pady=20, fill="both", expand=True)
-        middle_frame.pack_propagate(False)  # Alanın sabit boyutta kalmasını sağla
+        # "Dosya Yükle" butonu ve Dosya Listbox
+        self.team_files_listbox = tk.Listbox(self, height=10, width=100, selectmode="single")
+        self.team_files_listbox.pack(pady=10)
         
+        # Başlangıçta dosyaları listele
+        self.update_file_listbox()
+
     def add_user(self):
         print(f"Kullanıcı ekleme işlemi başlatıldı. {activeTeam.team_id}")
         # Yeni bir pencere aç
         popup = tk.Toplevel(self)
-        popup.title("Kullanici Seç")
+        popup.title("Kullanıcı Seç")
         popup.geometry("300x400")
 
         all_users = get_all_users()
@@ -317,12 +369,31 @@ class MyTeamPage(tk.Frame):
                         command=lambda user_id=user[0]: self.select_user(user_id, popup)
                     ).pack(pady=5)
         else:
-            tk.Label(self.teams_frame, text="Herhangi bir takiminiz yok.", font=("Arial", 12)).pack(pady=5)         
+            tk.Label(self.teams_frame, text="Herhangi bir takımınız yok.", font=("Arial", 12)).pack(pady=5)         
 
     def select_user(self, user_id, popup):
         add_team_member(user_id, activeTeam.team_id)
-        
         popup.destroy()  # Pencereyi kapat
+        self.update_file_listbox()  # Yeni kullanıcı eklendikten sonra dosyaları güncelle
+
+    def update_file_listbox(self):
+        # Takıma ait dosyaları veritabanından al
+        file_ids = get_file_ids_for_team(activeTeam.team_id)
+        if not file_ids:
+            self.team_files_listbox.delete(0, tk.END)
+            self.team_files_listbox.insert(tk.END, "Bu takıma ait dosya bulunmamaktadır.")
+            return
+        
+        file_details = get_file_details(file_ids)
+        
+        # Listbox'u temizle
+        self.team_files_listbox.delete(0, tk.END)
+
+        # Dosya bilgilerini Listbox'a ekle
+        for file in file_details:
+            file_info = f"{file[0]} - {file[2]} MB - {file[3]} - Owner: {file[4]}"  # file_name, file_size, file_type, owner_id
+            self.team_files_listbox.insert(tk.END, file_info)
+
 
 
 
