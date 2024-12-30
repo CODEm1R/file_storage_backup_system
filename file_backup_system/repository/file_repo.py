@@ -107,6 +107,41 @@ def delete_file(files_listbox, owner_id):
     except Exception as e:
         messagebox.showerror("Error", f"Error deleting file: {e}")
 
+def delete_file_by_id(file_id):
+    try:
+        # MySQL bağlantısı oluşturma
+        connection = mysql.connector.connect(
+            host="localhost",
+            user="root",
+            password="MySQL_316497",
+            database="file_backup_system"
+        )
+
+        cursor = connection.cursor()
+
+        # Silme sorgusu
+        delete_query = "DELETE FROM files WHERE file_id = %s"
+        cursor.execute(delete_query, (file_id,))
+
+        # Değişiklikleri kaydetme
+        connection.commit()
+
+        if cursor.rowcount > 0:
+            print(f"Dosya ID {file_id} başarıyla silindi.")
+            messagebox.showinfo("Basarili","Kulalnici dosyasi silindi")
+        else:
+            print(f"Dosya ID {file_id} bulunamadı.")
+
+    except mysql.connector.Error as err:
+        print(f"Bir hata oluştu: {err}")
+
+    finally:
+        # Bağlantıyı kapatma
+        if cursor:
+            cursor.close()
+        if connection:
+            connection.close()        
+
 
 # Girilen team_id'ye göre file_id'leri bulma
 def get_file_ids_for_team(team_id):

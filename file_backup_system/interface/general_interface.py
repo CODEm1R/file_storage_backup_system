@@ -130,7 +130,7 @@ class AdminHomePage(tk.Frame):
         welcome_label.pack(pady=20)
 
         # Kullanıcı listesini göstermek için Listbox
-        self.user_listbox = tk.Listbox(self, width=50, height=15)
+        self.user_listbox = tk.Listbox(self, width=50, height=10)
         self.user_listbox.pack(pady=10)
         # Kullanıcı listesini yükle
         update_users_list(users_listbox=self.user_listbox)
@@ -145,7 +145,7 @@ class AdminHomePage(tk.Frame):
         self.size_entry = tk.Entry(size_frame, width=20)
         self.size_entry.pack(side=tk.LEFT, padx=5)
 
-        size_button = tk.Button(size_frame, text="Boyut Düzenle", state="disabled")
+        size_button = tk.Button(size_frame, text="Boyut Düzenle", command=lambda: self.update_user_limit(self.get_user_id(self.user_listbox),self.size_entry.get(),self.user_listbox))
         size_button.pack(side=tk.LEFT, padx=5)
 
         # Kullanıcı dsoyalarını düzenleme alanı (Entry ve Buton yan yana)
@@ -156,17 +156,34 @@ class AdminHomePage(tk.Frame):
         self.userID_entry = tk.Entry(usersfile_frame, width=20)
         self.userID_entry.pack(side=tk.LEFT, padx=5)
 
-        file_button = tk.Button(usersfile_frame, text="Boyut Düzenle", command=lambda: update_files_list(self.files_listbox,self.userID_entry.get()))
+        file_button = tk.Button(usersfile_frame, text="Dosyalari Gor", command=lambda: update_files_list(self.files_listbox,self.userID_entry.get()))
         file_button.pack(side=tk.LEFT, padx=5)
 
         # Kullanıcı listesini göstermek için Listbox
-        self.files_listbox = tk.Listbox(self, width=50, height=15)
+        self.files_listbox = tk.Listbox(self, width=50, height=10)
         self.files_listbox.pack(pady=10)
-        # Kullanıcı listesini yükle
-        #update_files_list(files_listbox=self.files_listbox,owner_id=10)
 
-        logout_button = tk.Button(self, text="Çıkış Yap", command=self.logout)
-        logout_button.pack(pady=10)
+        file_open_button = tk.Button(self, text="Dosya Ac", command=lambda: os.startfile(self.files_listbox.get(self.files_listbox.curselection())[2]))
+        file_open_button.pack(side=tk.LEFT, padx=5)
+
+        # Kullanıcı dosyası silmek için
+        file_delete_frame = tk.Frame(self)
+        file_delete_frame.pack(side=tk.LEFT, padx=5)
+
+        self.delete_entry = tk.Entry(file_delete_frame,width=20)
+        self.delete_entry.pack(side=tk.LEFT, padx=5)
+
+        file_delete_button = tk.Button(file_delete_frame, text="Dosya Sil", command=lambda: delete_file_by_id(self.delete_entry.get()))
+        file_delete_button.pack(side=tk.LEFT, padx=5)
+
+
+
+        logout_button = tk.Button(self, text="Çikiş Yap", command=self.logout)
+        logout_button.pack(pady=10)    
+
+    def update_user_limit(self,userID, new_limit, users_listbox):
+        update_storage_limit(userID, new_limit)
+        update_users_list(users_listbox)        
 
     def remove_user(self, user_listbox):
         user_id = self.get_user_id(user_listbox)

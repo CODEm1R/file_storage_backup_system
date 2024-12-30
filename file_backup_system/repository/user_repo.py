@@ -134,11 +134,11 @@ def get_all_users():
     connection = connect_db()
     cursor = connection.cursor()
     try:
-        cursor.execute("SELECT user_id, user_name, role FROM users")
+        cursor.execute("SELECT user_id, user_name, role, storage_limit FROM users")
         users = cursor.fetchall()
         return users  # Kullanıcıları bir liste olarak döndür
     except mysql.connector.Error as e:
-        print(f"Veritabanı hatası: {e}")
+        print(f"Veritabani hatasi: {e}")
         return []
     finally:
         cursor.close()
@@ -186,6 +186,24 @@ def update_user(user_id, user_name=None, user_password=None, role=None):
     finally:
         cursor.close()
         connection.close()
+
+def update_storage_limit(user_id, new_storage_limit):
+    connection = connect_db()
+    cursor = connection.cursor()
+    try:
+        cursor.execute(
+            "UPDATE users SET storage_limit = %s WHERE user_id = %s",
+            (new_storage_limit, user_id)
+        )
+        connection.commit()
+        print(f"Kullanıcının storage_limit başarıyla {new_storage_limit} olarak güncellendi.")
+        messagebox.showinfo("Basarili",f"{user_id} kulalnicisi storage_limit başariyla {new_storage_limit} olarak güncellendi.")
+    except mysql.connector.Error as e:
+        print(f"Veritabanı hatası: {e}")
+        messagebox.showwarning("Hata","Limit guncelleme basarisiz oldu")
+    finally:
+        cursor.close()
+        connection.close()        
 
 # DELETE: Kullanıcıyı silme
 def delete_user(user_id):
