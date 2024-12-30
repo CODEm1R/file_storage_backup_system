@@ -194,15 +194,19 @@ class AdminHomePage(tk.Frame):
         update_requests_list(self.requests_listbox)
 
         # İstek Onay buton
-        request_confirm_button = tk.Button(self, text="Istek Onayla", command=lambda: change_request_state(self.requests_listbox.get(self.requests_listbox.curselection())[2],"Confirm"))
+        request_confirm_button = tk.Button(self, text="Istek Onayla", command=lambda: self.request_options(self.requests_listbox,"Confirm"))
         request_confirm_button.pack(side=tk.LEFT, padx=5)
 
         #İstek reddetme buton
-        request_notAccept_button = tk.Button(self, text="Istek Onayla", command=lambda: change_request_state(self.requests_listbox.get(self.requests_listbox.curselection())[2],"Not Accept"))
+        request_notAccept_button = tk.Button(self, text="Istek Iptali", command=lambda: self.request_options(self.requests_listbox,"Not Accept"))
         request_notAccept_button.pack(side=tk.LEFT, padx=5)
 
         logout_button = tk.Button(self, text="Çikiş Yap", command=self.logout)
         logout_button.pack(pady=10)    
+
+    def request_options(self,requests_listbox,state):        
+        change_request_state(requests_listbox.get(self.requests_listbox.curselection())[0],state)
+        update_requests_list(requests_listbox)
 
     def update_user_limit(self,userID, new_limit, users_listbox):
         update_storage_limit(userID, new_limit)

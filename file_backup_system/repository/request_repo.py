@@ -1,6 +1,7 @@
 import mysql.connector
 import tkinter as tk 
 from tkinter import messagebox
+import bcrypt
 
 def connect_db():
     return mysql.connector.connect(
@@ -49,6 +50,7 @@ def update_requests_list(requests_listbox):
         requests_listbox.insert(tk.END, user)    
 
 def change_request_state(request_id, state):
+    print(f"request id : {request_id}")
     connection = connect_db()
     cursor = connection.cursor()
     try:
@@ -58,7 +60,10 @@ def change_request_state(request_id, state):
             result = cursor.fetchone()
             if result:
                 new_password, requester_id = result
-                cursor.execute("UPDATE users SET password = %s WHERE user_id = %s", (new_password, requester_id))
+                print(f"result: {result}")
+                hashed_password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt())
+                cursor.execute("UPDATE requests SET state = %s WHERE request_id = %s", (state, request_id))
+                cursor.execute("UPDATE users SET user_password = %s WHERE user_id = %s", (hashed_password, requester_id))
                 messagebox.showinfo("Onay","Sifre Onaylandi")
                 print("Şifre başarıyla değiştirildi.")
             else:
@@ -66,15 +71,14 @@ def change_request_state(request_id, state):
                 print("Request bulunamadı.")
 
             # Request sil
-            cursor.execute("DELETE FROM requests WHERE request_id = %s", (request_id,))
-            messagebox.showinfo("Onay","Sifre Silindi")
-            print("Request silindi.")
+            # cursor.execute("DELETE FROM requests WHERE request_id = %s", (request_id,))
+            # messagebox.showinfo("Onay","Sifre Silindi")
+            # print("Request silindi.")
 
         elif state == "Not Accept":
-            # Şifre değişmesin, sadece request silinsin
-            cursor.execute("DELETE FROM requests WHERE request_id = %s", (request_id,))
-            messagebox.showinfo("Onay","Sifre Silindi")
-            print("Request silindi.")
+            cursor.execute("UPDATE requests SET state = %s WHERE request_id = %s", (state, request_id))
+            messagebox.showinfo("Onay","Istek reddedildi")
+            print("Request kabul edilmedi.")
 
         elif state == "Wait":
             # İşlem yapılmasın
