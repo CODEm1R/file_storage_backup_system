@@ -4,6 +4,8 @@ from tkinter import messagebox
 import mysql.connector
 import bcrypt
 
+from logging_operations import * 
+
 # Veritabanı bağlantısı
 def connect_db():
     return mysql.connector.connect(
@@ -58,16 +60,19 @@ def login_user_hash(user_name, user_password):
             # Şifreyi doğrula
             if bcrypt.checkpw(user_password.encode('utf-8'), hashed_password.encode('utf-8')):
                 print(f"{user_password.encode('utf-8')} , {hashed_password}")
+                login_logger.info(f"{user_id} id'li {user_name} kullanicisi sisteme giris yapti.")
                 # Giriş başarılı, bilgileri döndür
                 return result
             else:
                 messagebox.showwarning("Hata","Şifre Hatalı")
+                login_logger.warning(f"{user_id} id'li {user_name} kullanicisi hatali sifre girdi.")
                 print("Hatalı şifre!")
                 return False  # Şifre hatalı
         else:
             print("Kullanıcı bulunamadı!")
             return False  # Kullanıcı adı bulunamadı
     except mysql.connector.Error as e:
+        login_logger.error(f"{user_id} id'li {user_name} kullanicisi sisteme giris yaparken hata olustu. Hata: {e}")
         print(f"Veritabanı hatası: {e}")
         return False  # Giriş başarısız
     finally:

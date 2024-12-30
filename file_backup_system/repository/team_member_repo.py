@@ -1,6 +1,7 @@
 import mysql.connector
 import tkinter as tk
 from tkinter import messagebox
+from logging_operations import *
 
 # Veritabanı bağlantısı
 def connect_db():
@@ -23,7 +24,9 @@ def add_team_member(user_id, team_id):
         connection.commit()
         print("Takım üyesi başarıyla eklendi.")
         messagebox.showinfo("Basarili",f"{user_id} kullanicisi {team_id} takimina eklendi")
+        team_logger.info(f"{user_id} id'li kullanici {team_id} id'li takima uye olarak eklendi.")
     except mysql.connector.Error as e:
+        team_logger.error(f"{user_id} id'li kullanici {team_id} id'li takima uye olarak eklenirken hata olustu. Hata: {e}")
         print(f"Veritabanı hatası: {e}")
     finally:
         #cursor.close()
@@ -88,8 +91,10 @@ def remove_team_member(user_id, team_id):
             WHERE user_id = %s AND team_id = %s
         """, (user_id, team_id))
         connection.commit()
+        team_logger.info(f"{user_id} id'li kullanici {team_id} id'li takim uyeliginden silindi.")
         print("Takım üyesi başarıyla silindi.")
     except mysql.connector.Error as e:
+        team_logger.error(f"{user_id} id'li kullanici {team_id} id'li takim üyeliginden silinirken hata olustu. Hata: {e}")
         print(f"Veritabanı hatası: {e}")
     finally:
         cursor.close()

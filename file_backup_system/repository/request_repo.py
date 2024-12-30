@@ -2,6 +2,7 @@ import mysql.connector
 import tkinter as tk 
 from tkinter import messagebox
 import bcrypt
+from logging_operations import *
 
 def connect_db():
     return mysql.connector.connect(
@@ -21,6 +22,7 @@ def create_request(new_password, requester_id, state):
         """, (new_password, requester_id, state))
         connection.commit()
         messagebox.showinfo("Basarili","Parola degistirme istegi olustu")
+        password_logger.info(f"{requester_id} id'li kullanici sifre degistirme talebinde bulundu. Talep edilen sifre: {new_password}")        
         print("Yeni request başarıyla eklendi.")
     except mysql.connector.Error as e:
         print(f"Veritabanı hatası: {e}")
@@ -65,33 +67,33 @@ def change_request_state(request_id, state):
                 cursor.execute("UPDATE requests SET state = %s WHERE request_id = %s", (state, request_id))
                 cursor.execute("UPDATE users SET user_password = %s WHERE user_id = %s", (hashed_password, requester_id))
                 messagebox.showinfo("Onay","Sifre Onaylandi")
+                request_logger.info(f"Admin {requester_id} id'li kullanicinin {request_id} numarali sifre degistirme talebini onayladi. Yeni sifre: {hashed_password}")
                 print("Şifre başarıyla değiştirildi.")
             else:
                 messagebox.showinfo("Hata","Istek bulunamadi")
                 print("Request bulunamadı.")
 
-            # Request sil
-            # cursor.execute("DELETE FROM requests WHERE request_id = %s", (request_id,))
-            # messagebox.showinfo("Onay","Sifre Silindi")
-            # print("Request silindi.")
-
         elif state == "Not Accept":
             cursor.execute("UPDATE requests SET state = %s WHERE request_id = %s", (state, request_id))
             messagebox.showinfo("Onay","Istek reddedildi")
+            request_logger.info(f"Admin {requester_id} idli kullanicinin {request_id} numarali sifre degistirme talebini reddetti.")
             print("Request kabul edilmedi.")
 
         elif state == "Wait":
             # İşlem yapılmasın
             messagebox.showinfo("Beklemede","Istek Beklemede")
+            request_logger.info(f"Admin {requester_id} idli kullanicinin {request_id} numarali sifre degistirme talebini bekletiliyor.")
             print("Bekleme durumu: İşlem yapilmadi.")
 
         else:
             messagebox.showinfo("HATA","Gecersiz state")
+            request_logger.warning(f"{request_id} numarali istek için beklenmeyen state degeri olustu. State: {state}")
             print("Geçersiz state parametresi.")
 
         connection.commit()
     except mysql.connector.Error as e:
         messagebox.showinfo("HATA","Veritabani Hatasi")
+        request_logger.error(f"{request_id} numarali sifre degistirme talebi işlemi sirasinda hata olustu. Hata: {e}")
         print(f"Veritabani hatasi: {e}")
     finally:
         cursor.close()

@@ -1,6 +1,7 @@
 import mysql.connector
 import tkinter as tk
 from tkinter import messagebox
+from logging_operations import *
 
 def share_file_with_team(file_id, team_id):
     """
@@ -31,14 +32,16 @@ def share_file_with_team(file_id, team_id):
         # Değişiklikleri kaydet
         connection.commit()
         messagebox.showinfo("Basarili","Dosya paylasildi")
+        file_logger.info(f"{file_id} id'li dosya {team_id} id'li takimla paylasildi")        
         print("Dosya ve takım ilişkileri başarıyla eklendi.")
 
     except mysql.connector.Error as error:
+        file_logger.error(f"{file_id} id'li dosya {team_id} id'li takimla paylasilirken hata olustu. Hata: {error}")
         print(f"MySQL hatası: {error}")
     
 def delete_file_sharing(file_id, team_id):
     """
-    MySQL'deki file_sharing tablosundan belirtilen dosya ve takım ilişkisini siler.
+    MySQL'deki file_sharing tablosundan belirtilen dosya ve takim ilişkisini siler.
 
     :param file_id: Silinecek dosyanın ID'si
     :param team_id: Silinecek takımın ID'si
@@ -65,15 +68,18 @@ def delete_file_sharing(file_id, team_id):
 
         # Kullanıcıya bilgi ver
         if cursor.rowcount > 0:
+            file_logger.info(f"{file_id} id'li dosya {team_id} id'li takimla paylasimi silindi.")
             messagebox.showinfo("Başarili", "Dosya paylaşımı silindi.")
             print("Dosya ve takim ilişkisi başarıyla silindi.")
         else:
             messagebox.showwarning("Uyari", "Belirtilen dosya ve takim ilişkisi bulunamadi.")
+            file_logger.warning(f"Silinmek istenen {file_id} id'li dosya ve {team_id} id'li takima mevcut iliski bulunamadi.")
             print("Silinecek kayit bulunamadi.")
 
     except mysql.connector.Error as error:
         print(f"MySQL hatası: {error}")
         messagebox.showerror("Hata", f"MySQL hatası: {error}")
+        file_logger.error(f"{file_id} id'li dosya {team_id} id'li takimdan silinirken hata olustu. Hata:{error}")
 
     finally:
         # Bağlantıyı kapat

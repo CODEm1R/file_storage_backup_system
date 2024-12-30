@@ -1,0 +1,2 @@
+2024-12-30 20:15:08,093 - INFO - 20 id'li kullanýcý 9 id'li takýma üye olarak eklendi.
+2024-12-30 20:34:14,524 - INFO - 20 id'li kullanici 10 id'li takima uye olarak eklendi.

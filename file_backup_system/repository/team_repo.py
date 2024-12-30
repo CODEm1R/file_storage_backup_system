@@ -96,18 +96,3 @@ def delete_team(team_id):
     finally:
         cursor.close()
         connection.close()
-
-# Örnek Kullanım
-if __name__ == "__main__":
-    # Yeni takım ekleme
-    create_team("Yıldızlar")
-    
-    # Takımları listeleme
-    print("Tüm takımlar:")
-    read_teams()
-    
-    # Takım güncelleme
-    update_team(team_id=1, team_name="Efsaneler")
-    
-    # Takım silme
-    delete_team(team_id=1)
