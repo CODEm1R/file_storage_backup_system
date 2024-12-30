@@ -1,0 +1,31 @@
+// Dosya İşlemi
+takım oluşurken dosya yolu oluştur (.../takım_id)
+
+veritabanına kaydet dosya yolunu
+
+o yola ait klasörü oluştur
+
+dosya yükle yolu veritabanından çekip o dosyaya yükleme yapılacak 
+
+ dosya için table a gerek yok 
+
+---
+önce db düzenle (takım tableına path ekle unıqe)
+o path e uygun klasör yaratılması
+direkt kullanıcıdan ilgili yere dosya yüklenmesi
+
+
+// yedekleme 
+Yedek dosya oluşturma 
+
+yedek dosya yolunu database e tutmak gerekiyor
+
+// log
+genel kullanıcı log dosyası 
+genel takım(arkadaslık) log dosyası (dosya işlemleri de bu log dosyasında olacak)
+
+
+// admin panel 
+logların 
+--şifre değiştirme isteği,3ten fazla yanlış şifre 
+

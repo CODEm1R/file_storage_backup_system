@@ -3,7 +3,9 @@ from tkinter import filedialog, messagebox
 import os, shutil
 import mysql.connector
 
-UPLOAD_DIR = '../file_backup_system/general_file'
+#UPLOAD_DIR = '../file_backup_system/general_file'
+UPLOAD_DIR = 'C:\\Users\\90541\\Documents\\GitHub\\file_storage_backup_system\\file_backup_system\\general_file'
+
 
 def create_database_connection():
     try:

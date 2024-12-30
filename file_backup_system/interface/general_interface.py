@@ -17,6 +17,8 @@ from repository.team_repo import *
 from repository.team_member_repo import *
 from repository.file_repo import *
 from repository.file_share_repo import *
+from repository.request_repo import *
+from backup_sync import *
 
 
 activeUser = None
@@ -28,7 +30,12 @@ class App(tk.Tk):
         super().__init__()
         self.title("Giriş ve Kayıt")
         self.geometry("400x400")
+        self.observer = start_sync_on_startup()
         self.show_page(LoginPage)
+
+        
+
+        self.protocol("WM_DELETE_WINDOW",self.close)
 
     # Sayfaları değiştirme fonksiyonu
     def show_page(self, page_class):
@@ -36,6 +43,10 @@ class App(tk.Tk):
             widget.destroy()
         page = page_class(self)
         page.pack(expand=True, fill="both")
+
+    def close(self):
+        stop_sync_on_shutdown(self.observer)
+        quit()
 
 
 # Giriş sayfası sınıfı
@@ -64,11 +75,11 @@ class LoginPage(tk.Frame):
 
             global activeUser
             if result[3] == "Admin":
-               activeUser  = AdminUser(result[0],result[1],result[2],result[3])
+               activeUser  = AdminUser(result[0],result[1],result[2],result[3],result[4])
                self.master.show_page(AdminHomePage)
 
             elif result[3] == "Normal":
-                activeUser  = NormalUser(result[0],result[1],result[2],result[3])
+                activeUser  = NormalUser(result[0],result[1],result[2],result[3],result[4])
                 self.master.show_page(HomePage)
 
         else:
@@ -98,16 +109,16 @@ class SignUpPage(tk.Frame):
         tk.Button(self, text="Back to Login", command=lambda: parent.show_page(LoginPage)).pack(pady=5)
 
     def signup(self):
-        user = NormalUser(user_id=1,nickname=self.nickname_entry.get(), password=self.password_entry.get(),role="Normal")
+        user = NormalUser(user_id=1,nickname=self.nickname_entry.get(), password=self.password_entry.get(),role="Normal",storage_limit=50)
         print(user.nickname)
         confirm_password = self.confirm_password_entry.get()
 
         if not user.nickname or not user.password or not confirm_password:
-            messagebox.showerror("Hata", "Tüm alanları doldurun!")
+            messagebox.showerror("Hata", "Tüm alanlari doldurun!")
 
         elif user.password == confirm_password:
 
-            create_user(user.nickname,user.password,"Normal")
+            create_user(user.nickname,user.password,"Normal",user.storage_limit)
             messagebox.showinfo("Bilgi", f"Kayit başarili.\nKullanici Adi: {user.nickname}")
             self.master.show_page(LoginPage)
 
@@ -176,7 +187,19 @@ class AdminHomePage(tk.Frame):
         file_delete_button = tk.Button(file_delete_frame, text="Dosya Sil", command=lambda: delete_file_by_id(self.delete_entry.get()))
         file_delete_button.pack(side=tk.LEFT, padx=5)
 
+        # Kullanıcı listesini göstermek için Listbox
+        self.requests_listbox = tk.Listbox(self, width=50, height=10)
+        self.requests_listbox.pack(pady=10)
+        # Kullanıcı listesini yükle
+        update_requests_list(self.requests_listbox)
 
+        # İstek Onay buton
+        request_confirm_button = tk.Button(self, text="Istek Onayla", command=lambda: change_request_state(self.requests_listbox.get(self.requests_listbox.curselection())[2],"Confirm"))
+        request_confirm_button.pack(side=tk.LEFT, padx=5)
+
+        #İstek reddetme buton
+        request_notAccept_button = tk.Button(self, text="Istek Onayla", command=lambda: change_request_state(self.requests_listbox.get(self.requests_listbox.curselection())[2],"Not Accept"))
+        request_notAccept_button.pack(side=tk.LEFT, padx=5)
 
         logout_button = tk.Button(self, text="Çikiş Yap", command=self.logout)
         logout_button.pack(pady=10)    
@@ -240,6 +263,10 @@ class HomePage(tk.Frame):
 
         # "Dosya Sil" butonu
         tk.Button(file_buttons_frame, text="Dosya Sil", command=lambda: delete_file(files_listbox, activeUser.user_id)).pack(side=tk.LEFT, padx=10)
+
+        # "Dosya Ac" butonu
+        file_open_button = tk.Button(file_buttons_frame, text="Dosya Ac", command=lambda: os.startfile(files_listbox.get(files_listbox.curselection())[2]))
+        file_open_button.pack(side=tk.LEFT, padx=5)
 
          # Dosya paylaşma girişleri
         share_inputs_frame = tk.Frame(self)
@@ -479,14 +506,28 @@ class UpdateProfilePage(tk.Frame):
         self.name_entry = tk.Entry(self)
         self.name_entry.pack(pady=5)
 
+        tk.Button(self, text="Isim Guncelle", command=lambda: self.update_name(self.name_entry.get())).pack(pady=10)
+
         tk.Label(self, text="Yeni Şifre:").pack(pady=5)
         self.password_entry = tk.Entry(self, show="*")
         self.password_entry.pack(pady=5)
 
         # Update
-        tk.Button(self,text="Profil Guncelle", command=self.update_profile).pack(pady=10)
+        tk.Button(self,text="Şifre Degisme Istegi", command=lambda: create_request(self.password_entry.get(),activeUser.user_id,state="wait")).pack(pady=10)
+
+        # Update
+        #tk.Button(self,text="Profil Guncelle", command=self.update_profile).pack(pady=10)
         # Back
         tk.Button(self,text="Geri Don", command=lambda: parent.show_page(ProfilePage)).pack(pady=10)
+
+    def update_name(self,new_name):
+        try:
+            update_user_name(activeUser.user_id,new_name)    
+            activeUser.nickname = new_name
+            messagebox.showinfo("Basarili",f"Isim guncellendi : {activeUser.nickname}")
+        except Exception as e:
+            messagebox.showwarning("Hata","Veritabani Hatasi")
+
 
     def update_profile(self):
         update_user(user_id=activeUser.user_id, user_name=self.name_entry.get(), user_password=self.password_entry.get(), role="Normal")
@@ -505,3 +546,4 @@ class UpdateProfilePage(tk.Frame):
 if __name__ == "__main__":
     app = App()
     app.mainloop()
+    

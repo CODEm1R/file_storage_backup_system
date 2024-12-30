@@ -45,14 +45,15 @@ def login_user_hash(user_name, user_password):
     try:
         # Veritabanından kullanıcı bilgilerini al
         cursor.execute("""
-            SELECT user_id, user_name, user_password, role 
+            SELECT user_id, user_name, user_password, role, storage_limit 
             FROM users 
             WHERE user_name = %s
         """, (user_name,))
         result = cursor.fetchone()
+        print(f"result : {result}")
 
         if result:
-            user_id, db_user_name, hashed_password, role = result
+            user_id, db_user_name, hashed_password, role, storage_limit = result
 
             # Şifreyi doğrula
             if bcrypt.checkpw(user_password.encode('utf-8'), hashed_password.encode('utf-8')):
@@ -98,7 +99,7 @@ def get_user_id_by_name(user_name):
 
 
 # CREATE: Yeni kullanıcı ekleme
-def create_user(user_name, user_password, role):
+def create_user(user_name, user_password, role, storage_limit):
     connection = connect_db()
     cursor = connection.cursor()
     try:
@@ -116,9 +117,9 @@ def create_user(user_name, user_password, role):
 
         # Kullanıcı adı mevcut değilse yeni kullanıcı ekle
         cursor.execute("""
-            INSERT INTO users (user_name, user_password, role)
-            VALUES (%s, %s, %s)
-        """, (user_name, hashed_password, role))
+            INSERT INTO users (user_name, user_password, role, storage_limit)
+            VALUES (%s, %s, %s, %s)
+        """, (user_name, hashed_password, role, storage_limit))
         connection.commit()
         messagebox.showinfo("Eklendi","Kullanici ekleme basarili")
         print("Kullanici başariyla eklendi.")
@@ -182,10 +183,24 @@ def update_user(user_id, user_name=None, user_password=None, role=None):
         connection.commit()
         print("Kullanıcı bilgileri başarıyla güncellendi.")
     except mysql.connector.Error as e:
-        print(f"Veritabanı hatası: {e}")
+        print(f"Veritabani hatasi: {e}")
     finally:
         cursor.close()
         connection.close()
+
+def update_user_name(user_id, user_name):
+    connection = connect_db()
+    cursor = connection.cursor()
+    try:
+        if user_name:
+            cursor.execute("UPDATE users SET user_name = %s WHERE user_id = %s", (user_name, user_id))     
+        connection.commit()    
+    except mysql.connector.Error as e:  
+        print(f"Veritabani hatasi: {e}")
+        messagebox.showwarning("Hata","Veritabanina baglanamadi")
+    finally:
+        cursor.close
+        connection.close                     
 
 def update_storage_limit(user_id, new_storage_limit):
     connection = connect_db()
@@ -219,17 +234,4 @@ def delete_user(user_id):
         cursor.close()
         connection.close()
 
-# Örnek Kullanım
-if __name__ == "__main__":
-    # Yeni kullanıcı ekleme
-    create_user("drogba", "password123", "Admin")
-    
-    # Kullanıcıları listeleme
-    print("Tüm kullanıcılar:")
-    read_users()
-    
-    # Kullanıcı güncelleme
-    update_user(user_id=1, user_name="mehmet.kaya", role="user")
-    
-    # Kullanıcı silme
-    delete_user(user_id=1)
+
